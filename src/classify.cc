@@ -432,9 +432,7 @@ int main(int argc, char **argv) {
   } else {
     IndexData *index_data = load_index(opts);
     classify(opts, index_data);
-    delete index_data->cht;
-    delete index_data->taxonomy;
-    delete index_data;
+    delete index_data;  // ~IndexData() frees cht + taxonomy (was double-free)
   }
 
   return 0;
