@@ -162,7 +162,14 @@ private:
     seq.header.assign(kseq_->name.s, kseq_->name.l);
     seq.comment.assign(kseq_->comment.s, kseq_->comment.l);
     seq.seq.assign(kseq_->seq.s, kseq_->seq.l);
-    seq.seq.shrink_to_fit();
+    // Note: no shrink_to_fit here. These Sequence buffers are reused across
+    // batches (seqs_ is a persistent member), and this copy happens inside the
+    // serialized input critical section in classify's ProcessFiles. Trimming
+    // capacity every record frees the buffer so the next batch's assign() must
+    // reallocate -- allocator churn under the lock that serializes all worker
+    // threads. Letting capacity persist makes assign() a plain copy. The extra
+    // resident memory is bounded by the longest read per slot and is negligible
+    // against the (multi-GB) hash table.
 
     if (kseq_->qual.l > 0) {
       file_format_ = SequenceFormat::FORMAT_FASTQ;
